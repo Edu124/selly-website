@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { QRCodeSVG } from "qrcode.react";
 
 const SELLY_APP_URL = "https://github.com/Edu124/selly-app/releases/download/v1.0.0/application-e6d993a0-9406-4a5e-ade0-abb9055206bf.apk";
 
@@ -119,10 +120,28 @@ export default function LandingPage() {
             <p>
               Download the Selly mobile app to manage orders, update product stock, view customer details, and send promotions — right from your phone.
             </p>
+            <div style={{ display: "flex", gap: 12, marginTop: 20, flexWrap: "wrap" }}>
+              <a href={SELLY_APP_URL} className="btn btn-primary">⬇ Download APK (Android)</a>
+              <Link to="/register" className="btn btn-outline">Create account first</Link>
+            </div>
           </div>
-          <div className="app-banner-btns">
-            <a href={SELLY_APP_URL} className="btn btn-primary">⬇ Download App (Android)</a>
-            <Link to="/register" className="btn btn-outline">Create account first</Link>
+          {/* QR Code */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+            <div style={{
+              background: "#fff", padding: 16, borderRadius: 16,
+              boxShadow: "0 0 0 1px var(--border)",
+            }}>
+              <QRCodeSVG
+                value={SELLY_APP_URL}
+                size={140}
+                bgColor="#ffffff"
+                fgColor="#0a0a0f"
+                level="M"
+              />
+            </div>
+            <p style={{ fontSize: 13, color: "var(--text-3)", textAlign: "center" }}>
+              Scan with your phone camera<br />to download the app
+            </p>
           </div>
         </div>
       </section>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { QRCodeSVG } from "qrcode.react";
 
 const SELLY_APP_URL = "https://github.com/Edu124/selly-app/releases/download/v1.0.0/application-e6d993a0-9406-4a5e-ade0-abb9055206bf.apk";
 const APP_VERSION   = "v1.0.0";
@@ -31,7 +32,7 @@ export default function PortalPage() {
   const daysLeft     = profile?.trial_days_left ?? 14;
   const isActive     = plan === "pro" || plan === "team";
 
-  const webhookUrl = `https://your-selly-server.com/webhook/buyer?bid=${businessId}`;
+  const webhookUrl = `https://instagram-bot-production-ef01.up.railway.app/webhook/buyer?bid=${businessId}`;
 
   async function copyId() {
     await navigator.clipboard.writeText(businessId);
@@ -137,10 +138,25 @@ export default function PortalPage() {
               Android APK · Requires Android 8.0+<br />
               Manage orders, catalog, customers, and promotions from your phone.
             </div>
+            <button className="btn btn-primary btn-lg" onClick={handleDownload} style={{ marginTop: 16 }}>
+              ⬇ Download APK
+            </button>
           </div>
-          <button className="btn btn-primary btn-lg" onClick={handleDownload}>
-            ⬇ Download App
-          </button>
+          {/* QR Code */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+            <div style={{ background: "#fff", padding: 14, borderRadius: 14 }}>
+              <QRCodeSVG
+                value={SELLY_APP_URL}
+                size={130}
+                bgColor="#ffffff"
+                fgColor="#0a0a0f"
+                level="M"
+              />
+            </div>
+            <p style={{ fontSize: 12, color: "var(--text-3)", textAlign: "center" }}>
+              Scan to download on phone
+            </p>
+          </div>
         </div>
 
         {/* Setup guide */}
