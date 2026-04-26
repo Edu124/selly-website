@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 
-const SELLY_APP_URL = "https://github.com/Edu124/selly-app/releases/download/v1.0.0/application-3d2687d7-8634-4af6-9ec8-a6b123efc6d8.apk";
+const SELLY_APP_URL = "https://github.com/Edu124/selly-app/releases/download/v1.0.0/application-124d6483-1908-47d9-a523-edbb1d0f2a0d.apk";
 
 const features = [
   { icon: "🤖", title: "AI-Powered DM Replies", desc: "Customers DM your Instagram page — Selly's AI instantly replies, shows the catalog, takes the order and confirms it. Zero manual effort." },
