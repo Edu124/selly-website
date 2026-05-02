@@ -2,14 +2,16 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 
-const SELLY_APP_URL = "https://github.com/Edu124/selly-app/releases/download/v1.0.0/application-0b1d98ab-602f-4aa0-8891-bc614902c5d4.apk";
+const SELLY_APP_URL = "https://github.com/Edu124/selly-app/releases/download/v1.0.0/application-2300c034-8407-4ba7-a54d-43b5cee45bd1.apk";
 
 const features = [
   { icon: "🤖", title: "AI-Powered DM Replies", desc: "Customers DM your Instagram page — Selly's AI instantly replies, shows the catalog, takes the order and confirms it. Zero manual effort." },
-  { icon: "📦", title: "Catalog from Instagram Posts", desc: "Just paste your Instagram post link. Selly auto-detects the product name, price, colors, and sizes from your caption." },
+  { icon: "🏭", title: "Industry-Based Catalog", desc: "Built for Education, Product businesses, and Tourism. Add courses with fees & duration, clothing with sizes & colors, or tour packages with destinations — each with the right fields." },
+  { icon: "📸", title: "Photo Upload for Products", desc: "Snap a photo or pick from gallery directly when adding products. Photos are stored securely and shown to customers in the catalog." },
   { icon: "🧾", title: "Auto GST Invoices", desc: "Every order gets a professional GST invoice generated automatically. Send it to the customer via DM in seconds." },
   { icon: "👥", title: "Customer Intelligence", desc: "See every customer's order history, total spend, referrals, and tags (VIP, frequent buyer) — all in one place." },
-  { icon: "📣", title: "Smart Promotions", desc: "Send flash sale DMs, new arrival alerts, and abandoned cart reminders to the right customers at the right time." },
+  { icon: "🎬", title: "Video Blast Promotions", desc: "Send product showcase videos, sale announcements, or course demos directly to customer segments via WhatsApp. With 30+ ready-to-use message templates." },
+  { icon: "📣", title: "Smart Promotions", desc: "Flash sales, new arrival alerts, abandoned cart recovery, and segment broadcasts — target VIPs, new customers, or inactive buyers with one tap." },
   { icon: "📊", title: "Seller Dashboard", desc: "Track revenue, orders, and commissions in real time. Manage everything from the Selly mobile app — even offline." },
 ];
 
@@ -177,8 +179,10 @@ export default function LandingPage() {
             <hr className="pricing-divider" />
             <ul className="pricing-features">
               <li>Everything in Trial</li>
-              <li>Unlimited products</li>
+              <li>Unlimited products + photo upload</li>
               <li>Flash sale & promo campaigns</li>
+              <li>🎬 Video blast to customer segments</li>
+              <li>30+ ready-made promo templates</li>
               <li>Abandoned cart recovery</li>
               <li>Advanced customer analytics</li>
               <li>Priority support</li>
