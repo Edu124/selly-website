@@ -211,6 +211,7 @@ export default function LandingPage() {
         <div>AI-powered Instagram selling · Made in India</div>
         <div style={{ display: "flex", gap: 20 }}>
           <a href="mailto:hello@selly.in" style={{ color: "var(--text-3)" }}>hello@selly.in</a>
+          <Link to="/privacy"  style={{ color: "var(--text-3)" }}>Privacy Policy</Link>
           <Link to="/login"    style={{ color: "var(--text-3)" }}>Sign in</Link>
           <Link to="/register" style={{ color: "var(--text-3)" }}>Sign up</Link>
         </div>

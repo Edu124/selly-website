@@ -6,6 +6,7 @@ import LoginPage    from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import PortalPage   from "./pages/PortalPage";
 import ResetPage    from "./pages/ResetPage";
+import PrivacyPage  from "./pages/PrivacyPage";
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -26,6 +27,7 @@ function AppRoutes() {
       <Route path="/login"    element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
       <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
       <Route path="/reset-password" element={<ResetPage />} />
+      <Route path="/privacy"  element={<PrivacyPage />} />
       <Route path="/portal"   element={<ProtectedRoute><PortalPage /></ProtectedRoute>} />
       <Route path="*"         element={<Navigate to="/" replace />} />
     </Routes>
