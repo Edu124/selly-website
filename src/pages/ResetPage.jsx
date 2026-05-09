@@ -10,11 +10,44 @@ export default function ResetPage() {
   const [error,        setError]        = useState("");
   const [done,         setDone]         = useState(false);
   const [validSession, setValidSession] = useState(false);
+  const [checking,     setChecking]     = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setValidSession(!!session);
+    // Supabase v2 password-reset flow:
+    //   1. User clicks the emailed link → browser opens this page with a
+    //      hash fragment containing the recovery tokens.
+    //   2. The Supabase client parses the hash and fires onAuthStateChange
+    //      with event "PASSWORD_RECOVERY".
+    //   3. We use that session to call updateUser({ password }).
+    //
+    // getSession() alone does NOT see the recovery token on a fresh page load —
+    // we must listen for the PASSWORD_RECOVERY event.
+
+    let resolved = false;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+        if (session) {
+          setValidSession(true);
+          setChecking(false);
+          resolved = true;
+        }
+      }
     });
+
+    // Fallback: if no recovery event fires within 3 s, check existing session
+    const timer = setTimeout(async () => {
+      if (!resolved) {
+        const { data: { session } } = await supabase.auth.getSession();
+        setValidSession(!!session);
+        setChecking(false);
+      }
+    }, 3000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
   }, []);
 
   async function handleSubmit(e) {
@@ -46,13 +79,20 @@ export default function ResetPage() {
 
           {done  && <div className="alert alert-success">Password updated! Redirecting…</div>}
           {error && <div className="alert alert-error">{error}</div>}
-          {!validSession && !done && (
+
+          {checking && !done && (
+            <div style={{ textAlign: "center", padding: "20px 0", color: "var(--text-3)" }}>
+              Verifying reset link…
+            </div>
+          )}
+
+          {!checking && !validSession && !done && (
             <div className="alert alert-error">
               Invalid or expired reset link. <Link to="/login" style={{ color: "var(--purple)" }}>Request a new one</Link>.
             </div>
           )}
 
-          {validSession && !done && (
+          {!checking && validSession && !done && (
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               <div className="form-group">
                 <label className="form-label">New password</label>
