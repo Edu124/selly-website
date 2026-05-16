@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { QRCodeSVG } from "qrcode.react";
 
-const SELLY_APP_URL = "https://github.com/Edu124/selly-app/releases/download/v1.0.0/application-6c58bc76-15e5-46f4-943b-32266d7ba539.apk";
+const SELLY_APP_URL = "https://github.com/Edu124/selly-app/releases/download/v1.0.0/application-a121dc3f-2ce1-44b3-b327-8555062a3f14.apk";
 const APP_VERSION   = "v1.0.0";
 const RELEASE_DATE  = "Apr 2026";
 
