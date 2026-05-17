@@ -90,7 +90,7 @@ export default function ShopPage() {
       "@type"           : "LocalBusiness",
       "name"            : shop.business_name,
       "description"     : `${shop.business_name} — ${INDUSTRY_LABELS[shop.industry] || "Business"} in ${shop.city || "India"}. Shop online and chat directly on WhatsApp or Instagram.`,
-      "url"             : `https://selly.in/shop/${shop.slug}`,
+      "url"             : `https://selly.codeforgeai.app/shop/${shop.slug}`,
       "address"         : {
         "@type"           : "PostalAddress",
         "addressLocality" : shop.city || "",
@@ -111,7 +111,7 @@ export default function ShopPage() {
           "price"    : p.price,
           "priceCurrency": "INR",
           "availability" : p.in_stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-          "url"      : `https://selly.in/shop/${shop.slug}#${p.id}`,
+          "url"      : `https://selly.codeforgeai.app/shop/${shop.slug}#${p.id}`,
           "image"    : p.image_url || "",
         })),
       },

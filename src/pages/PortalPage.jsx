@@ -38,7 +38,7 @@ export default function PortalPage() {
   const isActive     = plan === "pro" || plan === "team";
 
   const webhookUrl = `${API}/webhook/buyer?bid=${businessId}`;
-  const shopUrl    = shopSlug ? `https://selly.in/shop/${shopSlug}` : null;
+  const shopUrl    = shopSlug ? `https://selly.codeforgeai.app/shop/${shopSlug}` : null;
 
   // Fetch business settings to get the shop slug
   useEffect(() => {

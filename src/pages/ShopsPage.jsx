@@ -35,13 +35,13 @@ function DirectorySchema({ shops }) {
       "@type"          : "ItemList",
       "name"           : "Businesses on Selly — India's AI Shopping Assistant",
       "description"    : "Directory of shops, stores, and service businesses using Selly AI. Chat directly with each business on WhatsApp or Instagram to order.",
-      "url"            : "https://selly.in/shops",
+      "url"            : "https://selly.codeforgeai.app/shops",
       "numberOfItems"  : shops.length,
       "itemListElement": shops.map((s, i) => ({
         "@type"    : "ListItem",
         "position" : i + 1,
         "name"     : s.business_name,
-        "url"      : `https://selly.in/shop/${s.business_slug}`,
+        "url"      : `https://selly.codeforgeai.app/shop/${s.business_slug}`,
         "description": `${INDUSTRY_LABELS[s.industry] || "Business"} in ${s.city || "India"}`,
       })),
     });
