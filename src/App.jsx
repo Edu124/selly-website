@@ -7,6 +7,8 @@ import RegisterPage from "./pages/RegisterPage";
 import PortalPage   from "./pages/PortalPage";
 import ResetPage    from "./pages/ResetPage";
 import PrivacyPage  from "./pages/PrivacyPage";
+import ShopPage     from "./pages/ShopPage";
+import ShopsPage    from "./pages/ShopsPage";
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -27,9 +29,11 @@ function AppRoutes() {
       <Route path="/login"    element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
       <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
       <Route path="/reset-password" element={<ResetPage />} />
-      <Route path="/privacy"  element={<PrivacyPage />} />
-      <Route path="/portal"   element={<ProtectedRoute><PortalPage /></ProtectedRoute>} />
-      <Route path="*"         element={<Navigate to="/" replace />} />
+      <Route path="/privacy"     element={<PrivacyPage />} />
+      <Route path="/portal"      element={<ProtectedRoute><PortalPage /></ProtectedRoute>} />
+      <Route path="/shops"       element={<ShopsPage />} />
+      <Route path="/shop/:slug"  element={<ShopPage />} />
+      <Route path="*"            element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

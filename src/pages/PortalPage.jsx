@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { QRCodeSVG } from "qrcode.react";
+
+const API = "https://instagram-bot-production-ef01.up.railway.app";
 
 const SELLY_APP_URL = "https://github.com/Edu124/selly-app/releases/download/v1.0.0/application-a121dc3f-2ce1-44b3-b327-8555062a3f14.apk";
 const APP_VERSION   = "v1.0.0";
@@ -25,6 +28,8 @@ export default function PortalPage() {
   const { user, profile, signOut } = useAuth();
   const [copiedId,      setCopiedId]      = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const [copiedShop,    setCopiedShop]    = useState(false);
+  const [shopSlug,      setShopSlug]      = useState(null);
 
   const displayName  = profile?.business_name || user?.user_metadata?.business_name || user?.email?.split("@")[0] || "there";
   const businessId   = profile?.business_id   || user?.id?.split("-")[0]?.toUpperCase() || "—";
@@ -32,7 +37,17 @@ export default function PortalPage() {
   const daysLeft     = profile?.trial_days_left ?? 14;
   const isActive     = plan === "pro" || plan === "team";
 
-  const webhookUrl = `https://instagram-bot-production-ef01.up.railway.app/webhook/buyer?bid=${businessId}`;
+  const webhookUrl = `${API}/webhook/buyer?bid=${businessId}`;
+  const shopUrl    = shopSlug ? `https://selly.in/shop/${shopSlug}` : null;
+
+  // Fetch business settings to get the shop slug
+  useEffect(() => {
+    if (!businessId || businessId === "—") return;
+    fetch(`${API}/api/settings?bid=${businessId}`)
+      .then(r => r.json())
+      .then(d => { if (d.settings?.business_slug) setShopSlug(d.settings.business_slug); })
+      .catch(() => {});
+  }, [businessId]);
 
   async function copyId() {
     await navigator.clipboard.writeText(businessId);
@@ -44,6 +59,13 @@ export default function PortalPage() {
     await navigator.clipboard.writeText(webhookUrl);
     setCopiedWebhook(true);
     setTimeout(() => setCopiedWebhook(false), 2000);
+  }
+
+  async function copyShopUrl() {
+    if (!shopUrl) return;
+    await navigator.clipboard.writeText(shopUrl);
+    setCopiedShop(true);
+    setTimeout(() => setCopiedShop(false), 2000);
   }
 
   function handleDownload() {
@@ -100,6 +122,52 @@ export default function PortalPage() {
             <div className="portal-card-sub">Instagram · ManyChat</div>
           </div>
         </div>
+
+        {/* Shop Page Card */}
+        {shopSlug ? (
+          <div className="shop-live-card">
+            <div className="shop-live-badge">✓ Your shop page is live</div>
+            <div className="shop-live-desc">
+              Customers can now discover <strong>{displayName}</strong> on Google, ChatGPT, and other AI platforms.
+              Share the link in your Instagram bio.
+            </div>
+            <div className="cred-row" style={{ marginTop: 12 }}>
+              <div className="cred-value" style={{ fontSize: 13 }}>{shopUrl}</div>
+              <button className={`copy-btn ${copiedShop ? "copied" : ""}`} onClick={copyShopUrl}>
+                {copiedShop ? "Copied ✓" : "Copy link"}
+              </button>
+            </div>
+            <div style={{ display: "flex", gap: 12, marginTop: 14, flexWrap: "wrap" }}>
+              <a
+                href={shopUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-outline btn-sm"
+              >
+                View shop page →
+              </a>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(displayName)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-outline btn-sm"
+              >
+                🗺 Set up Google Business Profile
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div className="shop-pending-card">
+            <div className="shop-pending-icon">🌐</div>
+            <div>
+              <div className="shop-pending-title">Get your AI-discoverable shop page</div>
+              <div className="shop-pending-desc">
+                Open the Selly app → Settings → fill in your <strong>Business Name</strong> and <strong>City</strong> → tap Save.
+                Your public shop page will be created automatically.
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Business ID */}
         <div className="cred-box">
