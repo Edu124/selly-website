@@ -147,7 +147,7 @@ export default function PortalPage() {
                 View shop page →
               </a>
               <a
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(displayName)}`}
+                href="https://business.google.com/create"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-outline btn-sm"
