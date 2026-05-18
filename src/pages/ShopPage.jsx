@@ -120,9 +120,24 @@ function WALink({ number, businessName }) {
 }
 
 // ── Product Detail Modal ──────────────────────────────────────────────────────
-function ProductModal({ product, shop, onClose, onAddToCart, addBtnLabel = "+ Add to Cart" }) {
+function ProductModal({ product, shop, onClose, onAddToCart, addBtnLabel = "+ Add to Cart", reviews = [] }) {
   const [selectedSize,  setSelectedSize]  = useState("");
   const [selectedColor, setSelectedColor] = useState("");
+  const [imgIdx,        setImgIdx]        = useState(0);
+
+  // Build the image gallery: prefer image_urls array, fall back to single image_url
+  const images = (product.image_urls && product.image_urls.length > 0)
+    ? product.image_urls
+    : (product.image_url ? [product.image_url] : []);
+
+  // Reviews for this specific product (match by name, case-insensitive)
+  const productReviews = reviews.filter(
+    r => r.product_name && r.product_name.toLowerCase() === product.name.toLowerCase()
+  );
+  const reviewsToShow = productReviews.length > 0 ? productReviews : [];
+  const avgRating = reviewsToShow.length
+    ? (reviewsToShow.reduce((s, r) => s + r.rating, 0) / reviewsToShow.length).toFixed(1)
+    : null;
 
   function handleAdd() {
     onAddToCart({ ...product, size: selectedSize, color: selectedColor });
@@ -137,13 +152,53 @@ function ProductModal({ product, shop, onClose, onAddToCart, addBtnLabel = "+ Ad
           <button className="checkout-close" onClick={onClose}>✕</button>
         </div>
         <div className="checkout-body" style={{ padding: "0 0 20px" }}>
-          {product.image_url && (
-            <img src={product.image_url} alt={product.name}
-              style={{ width: "100%", maxHeight: 280, objectFit: "cover" }} />
+
+          {/* Image gallery */}
+          {images.length > 0 && (
+            <div style={{ position: "relative" }}>
+              <img src={images[imgIdx]} alt={product.name}
+                style={{ width: "100%", maxHeight: 300, objectFit: "cover", display: "block" }} />
+              {images.length > 1 && (
+                <>
+                  {/* Prev / Next arrows */}
+                  {imgIdx > 0 && (
+                    <button onClick={() => setImgIdx(i => i - 1)}
+                      style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.45)", border: "none", color: "#fff", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+                  )}
+                  {imgIdx < images.length - 1 && (
+                    <button onClick={() => setImgIdx(i => i + 1)}
+                      style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.45)", border: "none", color: "#fff", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+                  )}
+                  {/* Dot indicators */}
+                  <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 6 }}>
+                    {images.map((_, i) => (
+                      <button key={i} onClick={() => setImgIdx(i)}
+                        style={{ width: 8, height: 8, borderRadius: "50%", border: "none", cursor: "pointer", padding: 0,
+                          background: i === imgIdx ? "var(--purple)" : "rgba(255,255,255,0.6)" }} />
+                    ))}
+                  </div>
+                  {/* Thumbnail strip */}
+                  <div style={{ display: "flex", gap: 6, padding: "8px 12px 0", overflowX: "auto" }}>
+                    {images.map((url, i) => (
+                      <img key={i} src={url} alt="" onClick={() => setImgIdx(i)}
+                        style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 8, cursor: "pointer", flexShrink: 0,
+                          border: i === imgIdx ? "2px solid var(--purple)" : "2px solid transparent", opacity: i === imgIdx ? 1 : 0.6 }} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           )}
+
           <div style={{ padding: "16px 24px 0" }}>
-            <div style={{ marginBottom: 10 }}>
+            <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <span style={{ fontSize: 22, fontWeight: 700, color: "var(--purple)" }}>{formatPrice(product.price)}</span>
+              {avgRating && (
+                <span style={{ fontSize: 13, color: "var(--text-2)", display: "flex", alignItems: "center", gap: 4 }}>
+                  ⭐ <b style={{ color: "var(--text-1)" }}>{avgRating}</b>
+                  <span style={{ color: "var(--text-3)" }}>({reviewsToShow.length})</span>
+                </span>
+              )}
             </div>
             {product.description && <p style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.6, marginBottom: 14 }}>{product.description}</p>}
             {product.material && <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 14 }}>Material: {product.material}</p>}
@@ -188,6 +243,30 @@ function ProductModal({ product, shop, onClose, onAddToCart, addBtnLabel = "+ Ad
               disabled={product.has_sizes && product.sizes?.length > 0 && !selectedSize}>
               {addBtnLabel}
             </button>
+
+            {/* Customer reviews */}
+            {reviewsToShow.length > 0 && (
+              <div style={{ marginTop: 20, borderTop: "1px solid var(--border)", paddingTop: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: "var(--text-1)" }}>
+                  ⭐ Customer Reviews ({reviewsToShow.length})
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {reviewsToShow.slice(0, 5).map(r => (
+                    <div key={r.id} style={{ background: "var(--bg)", borderRadius: 10, padding: "10px 12px", border: "1px solid var(--border)" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
+                          {r.customer_name || "Customer"}
+                        </span>
+                        <span style={{ fontSize: 11, color: "var(--text-3)" }}>
+                          {new Date(r.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 16 }}>{"⭐".repeat(r.rating || 0)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -473,6 +552,7 @@ export default function ShopPage() {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
   const [reels,           setReels]           = useState([]);
+  const [reviews,         setReviews]         = useState([]);
   const [cart,            setCart]            = useState([]);
   const [checkout,        setCheckout]        = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -503,6 +583,15 @@ export default function ShopPage() {
       .then(d => setReels(d.reels || []))
       .catch(() => {});
   }, [slug, shop?.instagram_enabled]);
+
+  // Load customer reviews for this shop
+  useEffect(() => {
+    if (!slug) return;
+    fetch(`${API}/public/shop/${slug}/reviews`)
+      .then(r => r.json())
+      .then(d => setReviews(d.reviews || []))
+      .catch(() => {});
+  }, [slug]);
 
   // Inject Schema.org JSON-LD for AI/search engine discovery
   useEffect(() => {
@@ -633,6 +722,17 @@ export default function ShopPage() {
                 <div className="shop-product-info">
                   <div className="shop-product-name">{p.name}</div>
                   <div className="shop-product-price">{formatPrice(p.price)}</div>
+                  {/* Inline rating badge from loaded reviews */}
+                  {(() => {
+                    const pr = reviews.filter(r => r.product_name && r.product_name.toLowerCase() === p.name.toLowerCase());
+                    if (!pr.length) return null;
+                    const avg = (pr.reduce((s, r) => s + r.rating, 0) / pr.length).toFixed(1);
+                    return (
+                      <div style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 4 }}>
+                        ⭐ {avg} <span style={{ color: "var(--text-3)" }}>({pr.length})</span>
+                      </div>
+                    );
+                  })()}
                   {!p.in_stock && (
                     <div className="shop-product-oos">Out of stock</div>
                   )}
@@ -671,6 +771,7 @@ export default function ShopPage() {
           onClose={() => setSelectedProduct(null)}
           onAddToCart={(item) => { addToCart(item); setSelectedProduct(null); }}
           addBtnLabel={addBtnLabel}
+          reviews={reviews}
         />
       )}
 
