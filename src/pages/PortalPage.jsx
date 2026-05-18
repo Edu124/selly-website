@@ -5,7 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 
 const API = "https://instagram-bot-production-ef01.up.railway.app";
 
-const SELLY_APP_URL = "https://github.com/Edu124/selly-app/releases/download/v1.0.0/application-84150b2c-0c93-4eb5-bed3-fb61a86105de.apk";
+const SELLY_APP_URL = "https://expo.dev/artifacts/eas/hiZ62ZU6QVBwZJvZssexUj.apk";
 const APP_VERSION   = "v1.0.0";
 const RELEASE_DATE  = "Apr 2026";
 
