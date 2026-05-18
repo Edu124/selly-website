@@ -5,14 +5,14 @@ import { QRCodeSVG } from "qrcode.react";
 
 const API = "https://instagram-bot-production-ef01.up.railway.app";
 
-const SELLY_APP_URL = "https://github.com/Edu124/selly-app/releases/download/v1.0.0/application-84150b2c-0c93-4eb5-bed3-fb61a86105de.apk";
-const APP_VERSION   = "v1.0.0";
-const RELEASE_DATE  = "Apr 2026";
+const SELLY_APP_URL = "https://github.com/Edu124/selly-app/releases/download/v1.0.0/application-c944dc71-57e8-470d-b76f-bbe7704e7f3d.apk";
+const APP_VERSION   = "v1.1.0";
+const RELEASE_DATE  = "May 2026";
 
 const changelog = [
-  { version: "v1.0.0", note: "Initial release. AI DM replies, catalog from Instagram posts, auto GST invoices, flash sale & promo campaigns, customer analytics." },
+  { version: "v1.1.0", note: "Push notifications for new orders, Returns & Refunds screen, return policy on shop page, OTA auto-updates (no reinstall needed), product detail modal on shop page." },
+  { version: "v1.0.0", note: "Initial release. AI DM replies, catalog from Instagram posts, auto GST invoices, flash sale & promo campaigns, customer analytics, web shop with Razorpay + COD." },
   { version: "v0.9.0", note: "Beta: order management, customer tagging (VIP/frequent), abandoned cart recovery, billing dashboard." },
-  { version: "v0.8.0", note: "Alpha: ManyChat webhook integration, basic catalog builder, order status tracking." },
 ];
 
 const setupSteps = [
