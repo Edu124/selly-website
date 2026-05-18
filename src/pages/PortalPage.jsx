@@ -32,7 +32,7 @@ export default function PortalPage() {
   const [shopSlug,      setShopSlug]      = useState(null);
 
   const displayName  = profile?.business_name || user?.user_metadata?.business_name || user?.email?.split("@")[0] || "there";
-  const businessId   = profile?.business_id   || user?.id?.split("-")[0]?.toUpperCase() || "—";
+  const businessId   = user?.id || "—";
   const plan         = profile?.plan          || "trial";
   const daysLeft     = profile?.trial_days_left ?? 14;
   const isActive     = plan === "pro" || plan === "team";
