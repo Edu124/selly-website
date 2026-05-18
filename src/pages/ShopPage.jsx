@@ -64,6 +64,83 @@ function WALink({ number, businessName }) {
   );
 }
 
+// ── Product Detail Modal ──────────────────────────────────────────────────────
+function ProductModal({ product, shop, onClose, onAddToCart }) {
+  const [selectedSize,  setSelectedSize]  = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
+
+  function handleAdd() {
+    onAddToCart({ ...product, size: selectedSize, color: selectedColor });
+    onClose();
+  }
+
+  return (
+    <div className="checkout-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="checkout-modal" style={{ maxWidth: 500 }}>
+        <div className="checkout-header">
+          <div className="checkout-title" style={{ fontSize: 16 }}>{product.name}</div>
+          <button className="checkout-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="checkout-body" style={{ padding: "0 0 20px" }}>
+          {product.image_url && (
+            <img src={product.image_url} alt={product.name}
+              style={{ width: "100%", maxHeight: 280, objectFit: "cover" }} />
+          )}
+          <div style={{ padding: "16px 24px 0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <span style={{ fontSize: 22, fontWeight: 700, color: "var(--purple)" }}>{formatPrice(product.price)}</span>
+              {product.product_number && <span style={{ fontSize: 12, color: "var(--text-3)" }}>#{product.product_number}</span>}
+            </div>
+            {product.description && <p style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.6, marginBottom: 14 }}>{product.description}</p>}
+            {product.material && <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 14 }}>Material: {product.material}</p>}
+
+            {product.colors?.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Color</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {product.colors.map(c => (
+                    <button key={c} onClick={() => setSelectedColor(c)}
+                      style={{
+                        padding: "6px 14px", borderRadius: 20, fontSize: 13, cursor: "pointer",
+                        border: selectedColor === c ? "2px solid var(--purple)" : "1px solid var(--border)",
+                        background: selectedColor === c ? "var(--purple-dim)" : "var(--bg)",
+                        color: selectedColor === c ? "var(--purple)" : "var(--text-2)",
+                        fontWeight: selectedColor === c ? 600 : 400,
+                      }}>{c}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {product.has_sizes && product.sizes?.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Size</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {product.sizes.map(s => (
+                    <button key={s} onClick={() => setSelectedSize(s)}
+                      style={{
+                        padding: "6px 14px", borderRadius: 8, fontSize: 13, cursor: "pointer",
+                        border: selectedSize === s ? "2px solid var(--purple)" : "1px solid var(--border)",
+                        background: selectedSize === s ? "var(--purple-dim)" : "var(--bg)",
+                        color: selectedSize === s ? "var(--purple)" : "var(--text-2)",
+                        fontWeight: selectedSize === s ? 600 : 400,
+                      }}>{s}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button className="checkout-btn" onClick={handleAdd}
+              disabled={product.has_sizes && product.sizes?.length > 0 && !selectedSize}>
+              + Add to Cart
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Checkout Modal ────────────────────────────────────────────────────────────
 function CheckoutModal({ cart, shop, onClose, onSuccess }) {
   const [step,       setStep]       = useState("cart");   // cart | details | otp | payment | done
@@ -247,9 +324,10 @@ export default function ShopPage() {
   const [shop,    setShop]    = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
-  const [reels,    setReels]    = useState([]);
-  const [cart,     setCart]     = useState([]);
-  const [checkout, setCheckout] = useState(false);
+  const [reels,           setReels]           = useState([]);
+  const [cart,            setCart]            = useState([]);
+  const [checkout,        setCheckout]        = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   const addToCart = useCallback((product) => {
     setCart(prev => {
@@ -386,7 +464,10 @@ export default function ShopPage() {
           <h2 className="shop-section-title">Products</h2>
           <div className="shop-products-grid">
             {products.map(p => (
-              <div key={p.id} id={p.id} className="shop-product-card">
+              <div key={p.id} id={p.id} className="shop-product-card"
+                onClick={() => setSelectedProduct(p)}
+                style={{ cursor: "pointer" }}
+              >
                 {p.image_url ? (
                   <div className="shop-product-img-wrap">
                     <img src={p.image_url} alt={p.name} className="shop-product-img" loading="lazy" />
@@ -404,7 +485,15 @@ export default function ShopPage() {
                     <div className="shop-product-oos">Out of stock</div>
                   )}
                   {p.in_stock && (
-                    <button className="shop-add-to-cart" onClick={() => addToCart(p)}>+ Add to cart</button>
+                    <button className="shop-add-to-cart" onClick={e => {
+                      e.stopPropagation();
+                      // If product has sizes, open modal to let customer pick size
+                      if (p.has_sizes && p.sizes?.length > 0) {
+                        setSelectedProduct(p);
+                      } else {
+                        addToCart(p);
+                      }
+                    }}>+ Add to cart</button>
                   )}
                 </div>
               </div>
@@ -422,6 +511,16 @@ export default function ShopPage() {
             </div>
           </div>
         </section>
+      )}
+
+      {/* Product Detail Modal */}
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          shop={shop}
+          onClose={() => setSelectedProduct(null)}
+          onAddToCart={(item) => { addToCart(item); setSelectedProduct(null); }}
+        />
       )}
 
       {/* Checkout Modal */}
