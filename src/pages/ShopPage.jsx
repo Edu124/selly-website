@@ -50,6 +50,33 @@ const INDUSTRY_CTA = {
   icecream : "Want to order? Send us a message and we'll have it ready for you.",
 };
 
+const INDUSTRY_RETURN_LABEL = {
+  product  : "Request Return / Exchange",
+  education: "Request Refund",
+  tourism  : "Request Cancellation",
+  kirana   : "Request Return",
+  cakes    : "Raise a Concern",
+  icecream : "Raise a Concern",
+};
+
+const INDUSTRY_RETURN_REASONS = {
+  product  : ["Wrong size", "Wrong product received", "Damaged / defective", "Quality not as expected", "Changed my mind", "Other"],
+  education: ["Course not started yet", "Duplicate enrollment", "Did not receive access", "Course content mismatch", "Other"],
+  tourism  : ["Plans changed", "Medical emergency", "Duplicate booking", "Natural disaster / travel advisory", "Other"],
+  kirana   : ["Wrong item delivered", "Damaged / expired product", "Missing items in order", "Other"],
+  cakes    : ["Damaged delivery", "Wrong order received", "Quality issue", "Missing item", "Other"],
+  icecream : ["Wrong order", "Quality issue", "Missing item", "Other"],
+};
+
+const INDUSTRY_DEFAULT_POLICY = {
+  product  : "We accept returns within 7 days of delivery. Items must be unused, unwashed, and in original condition with tags intact. Damaged or defective items are eligible for a full refund.",
+  education: "Refund requests can be submitted within 3 days of enrollment, provided the course has not been accessed. Once course materials are accessed, refunds are at the instructor's discretion.",
+  tourism  : "Cancellations made 48+ hours before the tour date are eligible for a full refund. Cancellations within 48 hours may be subject to a 25% cancellation fee.",
+  kirana   : "We accept returns for incorrect or damaged items within 24 hours of delivery. Please contact us with your order ID and a photo of the item.",
+  cakes    : "As food items are perishable, we do not accept returns. However, if your order was damaged or incorrect, please contact us within 2 hours of delivery with a photo and we will make it right.",
+  icecream : "As food items are perishable, we do not accept returns. If your order was incorrect, please contact us immediately with your order ID.",
+};
+
 function formatPrice(p) {
   return "₹" + Number(p).toLocaleString("en-IN");
 }
@@ -115,9 +142,8 @@ function ProductModal({ product, shop, onClose, onAddToCart, addBtnLabel = "+ Ad
               style={{ width: "100%", maxHeight: 280, objectFit: "cover" }} />
           )}
           <div style={{ padding: "16px 24px 0" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ marginBottom: 10 }}>
               <span style={{ fontSize: 22, fontWeight: 700, color: "var(--purple)" }}>{formatPrice(product.price)}</span>
-              {product.product_number && <span style={{ fontSize: 12, color: "var(--text-3)" }}>#{product.product_number}</span>}
             </div>
             {product.description && <p style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.6, marginBottom: 14 }}>{product.description}</p>}
             {product.material && <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 14 }}>Material: {product.material}</p>}
@@ -163,6 +189,100 @@ function ProductModal({ product, shop, onClose, onAddToCart, addBtnLabel = "+ Ad
               {addBtnLabel}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Return Request Modal ──────────────────────────────────────────────────────
+function ReturnModal({ shop, onClose }) {
+  const [step,        setStep]        = useState("form");  // form | done
+  const [orderId,     setOrderId]     = useState("");
+  const [email,       setEmail]       = useState("");
+  const [name,        setName]        = useState("");
+  const [reason,      setReason]      = useState("");
+  const [description, setDescription] = useState("");
+  const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState("");
+  const [returnId,    setReturnId]    = useState("");
+
+  const reasons = INDUSTRY_RETURN_REASONS[shop.industry] || INDUSTRY_RETURN_REASONS.product;
+  const btnLabel = INDUSTRY_RETURN_LABEL[shop.industry]  || "Submit Request";
+
+  async function submit() {
+    if (!orderId.trim()) return setError("Please enter your order ID.");
+    if (!reason)         return setError("Please select a reason.");
+    setLoading(true); setError("");
+    try {
+      const r = await fetch(`${API}/api/web/return`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bid: shop.business_id, order_id: orderId.trim(),
+          customer_email: email.trim(), customer_name: name.trim(),
+          reason, description: description.trim(),
+        }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      setReturnId(d.return_id);
+      setStep("done");
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="checkout-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="checkout-modal" style={{ maxWidth: 480 }}>
+        <div className="checkout-header">
+          <div className="checkout-title">
+            {step === "form" ? btnLabel : "Request Submitted ✓"}
+          </div>
+          <button className="checkout-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="checkout-body">
+          {step === "form" && (
+            <>
+              {error && <div className="checkout-error">{error}</div>}
+              <input className="checkout-input" placeholder="Order ID *  (e.g. WEB1A2B3C or from your confirmation)" value={orderId} onChange={e => setOrderId(e.target.value)} />
+              <input className="checkout-input" placeholder="Your name" value={name} onChange={e => setName(e.target.value)} />
+              <input className="checkout-input" placeholder="Email address" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "var(--text-2)" }}>Reason *</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {reasons.map(r => (
+                    <button key={r} onClick={() => setReason(r)}
+                      style={{
+                        padding: "7px 14px", borderRadius: 20, fontSize: 13, cursor: "pointer",
+                        border: reason === r ? "2px solid var(--purple)" : "1px solid var(--border)",
+                        background: reason === r ? "var(--purple-dim)" : "var(--bg)",
+                        color: reason === r ? "var(--purple)" : "var(--text-2)",
+                        fontWeight: reason === r ? 600 : 400,
+                      }}>{r}</button>
+                  ))}
+                </div>
+              </div>
+
+              <textarea className="checkout-input checkout-textarea" placeholder="Describe the issue (optional — more detail helps us resolve it faster)" value={description} onChange={e => setDescription(e.target.value)} rows={3} />
+
+              <button className="checkout-btn" onClick={submit} disabled={loading || !orderId.trim() || !reason}>
+                {loading ? "Submitting..." : "Submit Request →"}
+              </button>
+              <button className="checkout-btn-ghost" onClick={onClose}>Cancel</button>
+            </>
+          )}
+
+          {step === "done" && (
+            <>
+              <div className="checkout-success-icon">✓</div>
+              <p className="checkout-success-msg">
+                Your request <b>#{returnId}</b> has been received.
+                The store owner will review it and get back to you within 1–2 business days.
+              </p>
+              <button className="checkout-btn-ghost" onClick={onClose} style={{ marginTop: 8 }}>Close</button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -356,6 +476,7 @@ export default function ShopPage() {
   const [cart,            setCart]            = useState([]);
   const [checkout,        setCheckout]        = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [returnOpen,      setReturnOpen]      = useState(false);
 
   const addToCart = useCallback((product) => {
     setCart(prev => {
@@ -448,11 +569,14 @@ export default function ShopPage() {
   );
 
   const { business_name, industry, city, instagram_handle, whatsapp_number, whatsapp_enabled, instagram_enabled, business_address, products } = shop;
-  const industryLabel  = INDUSTRY_LABELS[industry] || "Business";
-  const emoji          = INDUSTRY_EMOJI[industry]  || "🏪";
-  const sectionTitle   = INDUSTRY_SECTION[industry] || "Products";
-  const addBtnLabel    = INDUSTRY_ADD_BTN[industry] || "+ Add to cart";
-  const ctaText        = INDUSTRY_CTA[industry] || "Ready to order? Send us a message.";
+  const industryLabel  = INDUSTRY_LABELS[industry]         || "Business";
+  const emoji          = INDUSTRY_EMOJI[industry]          || "🏪";
+  const sectionTitle   = INDUSTRY_SECTION[industry]        || "Products";
+  const addBtnLabel    = INDUSTRY_ADD_BTN[industry]        || "+ Add to cart";
+  const ctaText        = INDUSTRY_CTA[industry]            || "Ready to order? Send us a message.";
+  const returnBtnLabel = INDUSTRY_RETURN_LABEL[industry]   || "Request Return";
+  const defaultPolicy  = INDUSTRY_DEFAULT_POLICY[industry] || "";
+  const returnPolicy   = shop.return_policy || defaultPolicy;
 
   return (
     <div className="shop-page">
@@ -509,9 +633,6 @@ export default function ShopPage() {
                 <div className="shop-product-info">
                   <div className="shop-product-name">{p.name}</div>
                   <div className="shop-product-price">{formatPrice(p.price)}</div>
-                  {p.product_number && (
-                    <div className="shop-product-code">#{p.product_number}</div>
-                  )}
                   {!p.in_stock && (
                     <div className="shop-product-oos">Out of stock</div>
                   )}
@@ -550,6 +671,27 @@ export default function ShopPage() {
           onClose={() => setSelectedProduct(null)}
           onAddToCart={(item) => { addToCart(item); setSelectedProduct(null); }}
           addBtnLabel={addBtnLabel}
+        />
+      )}
+
+      {/* Return Policy + Request Return */}
+      <section className="shop-return-section">
+        <details className="shop-return-policy">
+          <summary className="shop-return-summary">
+            ↩ Return &amp; Refund Policy
+          </summary>
+          <p className="shop-return-text">{returnPolicy}</p>
+        </details>
+        <button className="shop-return-btn" onClick={() => setReturnOpen(true)}>
+          {returnBtnLabel}
+        </button>
+      </section>
+
+      {/* Return Request Modal */}
+      {returnOpen && (
+        <ReturnModal
+          shop={{ ...shop, business_id: shop.business_id }}
+          onClose={() => setReturnOpen(false)}
         />
       )}
 
