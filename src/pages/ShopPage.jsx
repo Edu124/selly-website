@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
+import { supabase } from "../lib/supabase";
 
 const API = "https://instagram-bot-production-ef01.up.railway.app";
 
@@ -88,12 +89,11 @@ function CheckoutModal({ cart, shop, onClose, onSuccess }) {
     if (!customer.email) return setError("Please enter your email first.");
     setLoading(true); setError("");
     try {
-      const r = await fetch(`${API}/api/web/send-otp`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: customer.email, business_name: shop.business_name }),
+      const { error } = await supabase.auth.signInWithOtp({
+        email: customer.email,
+        options: { shouldCreateUser: true, emailRedirectTo: undefined },
       });
-      const d = await r.json();
-      if (d.error) throw new Error(d.error);
+      if (error) throw new Error(error.message);
       setOtpSent(true);
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
@@ -102,13 +102,11 @@ function CheckoutModal({ cart, shop, onClose, onSuccess }) {
   async function verifyOtp() {
     setLoading(true); setError("");
     try {
-      const r = await fetch(`${API}/api/web/verify-otp`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: customer.email, otp }),
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: customer.email, token: otp, type: "email",
       });
-      const d = await r.json();
-      if (d.error) throw new Error(d.error);
-      setOtpToken(d.token);
+      if (error) throw new Error(error.message);
+      setOtpToken(data.session?.access_token);
       setStep("payment");
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
