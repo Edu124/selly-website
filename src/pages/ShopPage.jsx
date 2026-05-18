@@ -22,6 +22,34 @@ const INDUSTRY_EMOJI = {
   icecream   : "🍦",
 };
 
+// Section / button labels per industry
+const INDUSTRY_SECTION = {
+  product  : "Products",
+  education: "Courses",
+  tourism  : "Packages",
+  kirana   : "Items",
+  cakes    : "Menu",
+  icecream : "Menu",
+};
+
+const INDUSTRY_ADD_BTN = {
+  product  : "+ Add to cart",
+  education: "Enroll",
+  tourism  : "Book now",
+  kirana   : "+ Add to cart",
+  cakes    : "+ Add to cart",
+  icecream : "+ Add to cart",
+};
+
+const INDUSTRY_CTA = {
+  product  : "Ready to order? Send a DM with the product name or code and we'll take it from there.",
+  education: "Ready to enroll? Send us a message with the course name and we'll get you started.",
+  tourism  : "Interested in a package? Send us a message and we'll plan everything for you.",
+  kirana   : "Place your order by sending a message with the items you need.",
+  cakes    : "Ready to order? Send us a message with the item and we'll confirm your booking.",
+  icecream : "Want to order? Send us a message and we'll have it ready for you.",
+};
+
 function formatPrice(p) {
   return "₹" + Number(p).toLocaleString("en-IN");
 }
@@ -65,7 +93,7 @@ function WALink({ number, businessName }) {
 }
 
 // ── Product Detail Modal ──────────────────────────────────────────────────────
-function ProductModal({ product, shop, onClose, onAddToCart }) {
+function ProductModal({ product, shop, onClose, onAddToCart, addBtnLabel = "+ Add to Cart" }) {
   const [selectedSize,  setSelectedSize]  = useState("");
   const [selectedColor, setSelectedColor] = useState("");
 
@@ -132,7 +160,7 @@ function ProductModal({ product, shop, onClose, onAddToCart }) {
 
             <button className="checkout-btn" onClick={handleAdd}
               disabled={product.has_sizes && product.sizes?.length > 0 && !selectedSize}>
-              + Add to Cart
+              {addBtnLabel}
             </button>
           </div>
         </div>
@@ -420,8 +448,11 @@ export default function ShopPage() {
   );
 
   const { business_name, industry, city, instagram_handle, whatsapp_number, whatsapp_enabled, instagram_enabled, business_address, products } = shop;
-  const industryLabel = INDUSTRY_LABELS[industry] || "Business";
-  const emoji         = INDUSTRY_EMOJI[industry] || "🏪";
+  const industryLabel  = INDUSTRY_LABELS[industry] || "Business";
+  const emoji          = INDUSTRY_EMOJI[industry]  || "🏪";
+  const sectionTitle   = INDUSTRY_SECTION[industry] || "Products";
+  const addBtnLabel    = INDUSTRY_ADD_BTN[industry] || "+ Add to cart";
+  const ctaText        = INDUSTRY_CTA[industry] || "Ready to order? Send us a message.";
 
   return (
     <div className="shop-page">
@@ -461,7 +492,7 @@ export default function ShopPage() {
       {/* Products */}
       {products && products.length > 0 && (
         <section className="shop-products-section">
-          <h2 className="shop-section-title">Products</h2>
+          <h2 className="shop-section-title">{sectionTitle}</h2>
           <div className="shop-products-grid">
             {products.map(p => (
               <div key={p.id} id={p.id} className="shop-product-card"
@@ -487,13 +518,13 @@ export default function ShopPage() {
                   {p.in_stock && (
                     <button className="shop-add-to-cart" onClick={e => {
                       e.stopPropagation();
-                      // If product has sizes, open modal to let customer pick size
+                      // If product has sizes, open modal to let customer pick size first
                       if (p.has_sizes && p.sizes?.length > 0) {
                         setSelectedProduct(p);
                       } else {
                         addToCart(p);
                       }
-                    }}>+ Add to cart</button>
+                    }}>{addBtnLabel}</button>
                   )}
                 </div>
               </div>
@@ -502,9 +533,7 @@ export default function ShopPage() {
 
           {/* Order CTA */}
           <div className="shop-order-cta">
-            <p className="shop-order-cta-text">
-              Ready to order? Send a DM with the product name or code and we'll take it from there.
-            </p>
+            <p className="shop-order-cta-text">{ctaText}</p>
             <div className="shop-contact-row">
               {whatsapp_enabled  && <WALink    number={whatsapp_number} businessName={business_name} />}
               {instagram_enabled && <InstaLink handle={instagram_handle} />}
@@ -520,6 +549,7 @@ export default function ShopPage() {
           shop={shop}
           onClose={() => setSelectedProduct(null)}
           onAddToCart={(item) => { addToCart(item); setSelectedProduct(null); }}
+          addBtnLabel={addBtnLabel}
         />
       )}
 
