@@ -141,7 +141,7 @@ export default function ShopPage() {
     </div>
   );
 
-  const { business_name, industry, city, instagram_handle, whatsapp_number, business_address, products } = shop;
+  const { business_name, industry, city, instagram_handle, whatsapp_number, whatsapp_enabled, instagram_enabled, business_address, products } = shop;
   const industryLabel = INDUSTRY_LABELS[industry] || "Business";
   const emoji         = INDUSTRY_EMOJI[industry] || "🏪";
 
@@ -162,10 +162,10 @@ export default function ShopPage() {
           {city && <span className="shop-city-pill">📍 {city}</span>}
         </div>
 
-        {/* Contact buttons */}
+        {/* Contact buttons — only show enabled channels */}
         <div className="shop-contact-row">
-          <WALink     number={whatsapp_number} businessName={business_name} />
-          <InstaLink  handle={instagram_handle} />
+          {whatsapp_enabled  && <WALink    number={whatsapp_number} businessName={business_name} />}
+          {instagram_enabled && <InstaLink handle={instagram_handle} />}
         </div>
 
         {business_address && (
@@ -207,8 +207,8 @@ export default function ShopPage() {
               Ready to order? Send a DM with the product name or code and we'll take it from there.
             </p>
             <div className="shop-contact-row">
-              <WALink     number={whatsapp_number} businessName={business_name} />
-              <InstaLink  handle={instagram_handle} />
+              {whatsapp_enabled  && <WALink    number={whatsapp_number} businessName={business_name} />}
+              {instagram_enabled && <InstaLink handle={instagram_handle} />}
             </div>
           </div>
         </section>
