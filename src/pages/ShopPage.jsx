@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 
 const API = "https://instagram-bot-production-ef01.up.railway.app";
@@ -63,12 +63,205 @@ function WALink({ number, businessName }) {
   );
 }
 
+// ── Checkout Modal ────────────────────────────────────────────────────────────
+function CheckoutModal({ cart, shop, onClose, onSuccess }) {
+  const [step,       setStep]       = useState("cart");   // cart | details | otp | payment | done
+  const [customer,   setCustomer]   = useState({ name: "", email: "", phone: "", address: "" });
+  const [otp,        setOtp]        = useState("");
+  const [otpToken,   setOtpToken]   = useState(null);
+  const [otpSent,    setOtpSent]    = useState(false);
+  const [payMode,    setPayMode]    = useState("cod");
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState("");
+  const [result,     setResult]     = useState(null);
+
+  const isProduct = ["product","kirana","cakes","icecream"].includes(shop.industry);
+
+  const subtotal   = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const gstRate    = shop.gst_enabled !== false ? (shop.gst_rate || 5) : 0;
+  const gstAmt     = Math.round(subtotal * gstRate / 100);
+  const delivery   = shop.free_above > 0 && subtotal >= shop.free_above ? 0 : (shop.delivery_charge || 0);
+  const codFee     = payMode === "cod" ? (shop.cod_fee || 0) : 0;
+  const total      = subtotal + gstAmt + delivery + codFee;
+
+  async function sendOtp() {
+    if (!customer.email) return setError("Please enter your email first.");
+    setLoading(true); setError("");
+    try {
+      const r = await fetch(`${API}/api/web/send-otp`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: customer.email, business_name: shop.business_name }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      setOtpSent(true);
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  async function verifyOtp() {
+    setLoading(true); setError("");
+    try {
+      const r = await fetch(`${API}/api/web/verify-otp`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: customer.email, otp }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      setOtpToken(d.token);
+      setStep("payment");
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  async function placeOrder() {
+    setLoading(true); setError("");
+    try {
+      const r = await fetch(`${API}/api/web/order`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bid: shop.business_id, cart: cart.map(i => ({ name: i.name, price: i.price, qty: i.qty, size: i.size || "" })),
+          customer, payment_mode: payMode, otp_token: otpToken,
+        }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      setResult(d);
+      setStep("done");
+      onSuccess && onSuccess(d);
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="checkout-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="checkout-modal">
+        <div className="checkout-header">
+          <div className="checkout-title">
+            {step === "cart"    && "Your Cart"}
+            {step === "details" && "Your Details"}
+            {step === "otp"     && "Verify Email"}
+            {step === "payment" && "Payment"}
+            {step === "done"    && "Order Placed! 🎉"}
+          </div>
+          {step !== "done" && <button className="checkout-close" onClick={onClose}>✕</button>}
+        </div>
+
+        <div className="checkout-body">
+          {error && <div className="checkout-error">{error}</div>}
+
+          {/* ── Step: Cart review ── */}
+          {step === "cart" && (
+            <>
+              {cart.map((item, i) => (
+                <div key={i} className="checkout-item">
+                  <div className="checkout-item-name">{item.name}{item.size ? ` (${item.size})` : ""}</div>
+                  <div className="checkout-item-meta">× {item.qty} &nbsp;·&nbsp; ₹{(item.price * item.qty).toLocaleString("en-IN")}</div>
+                </div>
+              ))}
+              <div className="checkout-divider" />
+              <div className="checkout-totals">
+                <div className="checkout-total-row"><span>Subtotal</span><span>₹{subtotal.toLocaleString("en-IN")}</span></div>
+                {gstAmt > 0 && <div className="checkout-total-row"><span>GST ({gstRate}%)</span><span>₹{gstAmt.toLocaleString("en-IN")}</span></div>}
+                {delivery > 0 && <div className="checkout-total-row"><span>Delivery</span><span>₹{delivery.toLocaleString("en-IN")}</span></div>}
+                <div className="checkout-total-row grand"><span>Total</span><span>₹{total.toLocaleString("en-IN")}</span></div>
+              </div>
+              <button className="checkout-btn" onClick={() => setStep("details")}>Proceed →</button>
+            </>
+          )}
+
+          {/* ── Step: Customer details ── */}
+          {step === "details" && (
+            <>
+              <input className="checkout-input" placeholder="Your name *" value={customer.name} onChange={e => setCustomer(c => ({...c, name: e.target.value}))} />
+              <input className="checkout-input" placeholder="Email address *" type="email" value={customer.email} onChange={e => setCustomer(c => ({...c, email: e.target.value}))} />
+              <input className="checkout-input" placeholder="Phone number" type="tel" value={customer.phone} onChange={e => setCustomer(c => ({...c, phone: e.target.value}))} />
+              {isProduct && <textarea className="checkout-input checkout-textarea" placeholder="Delivery address *" value={customer.address} onChange={e => setCustomer(c => ({...c, address: e.target.value}))} rows={3} />}
+              <button className="checkout-btn" onClick={() => {
+                if (!customer.name || !customer.email) return setError("Name and email are required.");
+                if (isProduct && !customer.address) return setError("Delivery address is required.");
+                setError(""); setStep("otp");
+              }}>Continue →</button>
+            </>
+          )}
+
+          {/* ── Step: Email OTP ── */}
+          {step === "otp" && (
+            <>
+              <p className="checkout-otp-info">We'll send a 6-digit code to <b>{customer.email}</b> to confirm your order.</p>
+              {!otpSent ? (
+                <button className="checkout-btn" onClick={sendOtp} disabled={loading}>{loading ? "Sending..." : "Send OTP"}</button>
+              ) : (
+                <>
+                  <input className="checkout-input checkout-otp-input" placeholder="Enter 6-digit OTP" maxLength={6} value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g,""))} />
+                  <button className="checkout-btn" onClick={verifyOtp} disabled={loading || otp.length !== 6}>{loading ? "Verifying..." : "Verify & Continue →"}</button>
+                  <button className="checkout-btn-ghost" onClick={sendOtp} disabled={loading}>Resend OTP</button>
+                </>
+              )}
+            </>
+          )}
+
+          {/* ── Step: Payment ── */}
+          {step === "payment" && (
+            <>
+              <p className="checkout-otp-info">Choose how you'd like to pay for your order of <b>₹{total.toLocaleString("en-IN")}</b>.</p>
+              <div className="checkout-pay-options">
+                <label className={`checkout-pay-option ${payMode === "cod" ? "selected" : ""}`}>
+                  <input type="radio" value="cod" checked={payMode === "cod"} onChange={() => setPayMode("cod")} />
+                  <div><div className="checkout-pay-label">💵 Cash on Delivery</div><div className="checkout-pay-sub">{shop.cod_fee > 0 ? `+₹${shop.cod_fee} COD fee` : "No extra charge"}</div></div>
+                </label>
+                <label className={`checkout-pay-option ${payMode === "online" ? "selected" : ""}`}>
+                  <input type="radio" value="online" checked={payMode === "online"} onChange={() => setPayMode("online")} />
+                  <div><div className="checkout-pay-label">💳 Pay Online</div><div className="checkout-pay-sub">UPI, Card, Net Banking via Razorpay</div></div>
+                </label>
+              </div>
+              <button className="checkout-btn" onClick={placeOrder} disabled={loading}>{loading ? "Placing order..." : "Place Order →"}</button>
+            </>
+          )}
+
+          {/* ── Step: Done ── */}
+          {step === "done" && result && (
+            <>
+              <div className="checkout-success-icon">✓</div>
+              <p className="checkout-success-msg">Order <b>#{result.order_id}</b> placed! Confirmation sent to <b>{customer.email}</b>.</p>
+              {result.delivery_otp && (
+                <div className="checkout-otp-box">
+                  🔒 Delivery OTP: <strong>{result.delivery_otp}</strong>
+                  <p style={{ fontSize: 12, marginTop: 4, color: "#888" }}>Share this with the delivery person.</p>
+                </div>
+              )}
+              {result.pay_link && (
+                <a href={result.pay_link} target="_blank" rel="noopener noreferrer" className="checkout-btn" style={{ display: "block", textAlign: "center", textDecoration: "none", marginTop: 16 }}>
+                  Pay Now →
+                </a>
+              )}
+              <button className="checkout-btn-ghost" onClick={onClose} style={{ marginTop: 8 }}>Close</button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ShopPage() {
   const { slug } = useParams();
   const [shop,    setShop]    = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
-  const [reels,   setReels]   = useState([]);
+  const [reels,    setReels]    = useState([]);
+  const [cart,     setCart]     = useState([]);
+  const [checkout, setCheckout] = useState(false);
+
+  const addToCart = useCallback((product) => {
+    setCart(prev => {
+      const idx = prev.findIndex(i => i.id === product.id);
+      if (idx >= 0) return prev.map((i, n) => n === idx ? { ...i, qty: i.qty + 1 } : i);
+      return [...prev, { ...product, qty: 1 }];
+    });
+  }, []);
+
+  const cartCount = cart.reduce((s, i) => s + i.qty, 0);
 
   useEffect(() => {
     setLoading(true);
@@ -159,7 +352,14 @@ export default function ShopPage() {
       {/* Nav */}
       <nav className="shop-nav">
         <Link to="/" className="shop-nav-logo">Sell<span>y</span></Link>
-        <Link to="/shops" className="btn btn-ghost btn-sm">Browse shops</Link>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <Link to="/shops" className="btn btn-ghost btn-sm">Browse shops</Link>
+          {cartCount > 0 && (
+            <button className="shop-cart-btn" onClick={() => setCheckout(true)}>
+              🛒 Cart <span className="shop-cart-badge">{cartCount}</span>
+            </button>
+          )}
+        </div>
       </nav>
 
       {/* Hero */}
@@ -205,6 +405,9 @@ export default function ShopPage() {
                   {!p.in_stock && (
                     <div className="shop-product-oos">Out of stock</div>
                   )}
+                  {p.in_stock && (
+                    <button className="shop-add-to-cart" onClick={() => addToCart(p)}>+ Add to cart</button>
+                  )}
                 </div>
               </div>
             ))}
@@ -221,6 +424,16 @@ export default function ShopPage() {
             </div>
           </div>
         </section>
+      )}
+
+      {/* Checkout Modal */}
+      {checkout && cart.length > 0 && (
+        <CheckoutModal
+          cart={cart}
+          shop={{ ...shop, business_id: shop.business_id }}
+          onClose={() => setCheckout(false)}
+          onSuccess={() => { setCart([]); }}
+        />
       )}
 
       {/* Instagram Reels */}
