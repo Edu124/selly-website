@@ -81,6 +81,33 @@ function formatPrice(p) {
   return "₹" + Number(p).toLocaleString("en-IN");
 }
 
+// Maps color name strings → CSS color values for swatch circles
+const COLOR_MAP = {
+  red:"#ef4444",blue:"#3b82f6",green:"#22c55e",yellow:"#eab308",orange:"#f97316",
+  purple:"#a855f7",pink:"#ec4899",white:"#f8fafc",black:"#111827",gray:"#9ca3af",
+  grey:"#9ca3af",brown:"#92400e",navy:"#1e3a8a",maroon:"#7f1d1d",beige:"#d4b896",
+  cream:"#fef9ef",teal:"#14b8a6",cyan:"#06b6d4",lime:"#84cc16",indigo:"#6366f1",
+  violet:"#8b5cf6",magenta:"#d946ef",gold:"#f59e0b",silver:"#94a3b8",coral:"#f87171",
+  peach:"#fca5a5",turquoise:"#2dd4bf",khaki:"#c6b96b",mint:"#6ee7b7",rose:"#fb7185",
+  lavender:"#c4b5fd",mustard:"#ca8a04",olive:"#65a30d",charcoal:"#374151",
+  offwhite:"#f9fafb",multicolor:"linear-gradient(135deg,#ef4444,#f97316,#eab308,#22c55e,#3b82f6,#a855f7)",
+};
+function getColorSwatch(name) {
+  const key = name.toLowerCase().replace(/\s+/g,"");
+  return COLOR_MAP[key] || null;
+}
+
+// Status badge for order history
+const ORDER_STATUS_LABEL = {
+  pending_payment: { label: "Pending Payment", color: "#eab308" },
+  confirmed       : { label: "Confirmed",       color: "#22c55e" },
+  packed          : { label: "Packed",           color: "#3b82f6" },
+  shipped         : { label: "Shipped",          color: "#6366f1" },
+  out_for_delivery: { label: "Out for Delivery", color: "#f97316" },
+  delivered       : { label: "Delivered",        color: "#22c55e" },
+  cancelled       : { label: "Cancelled",        color: "#ef4444" },
+};
+
 function InstaLink({ handle }) {
   if (!handle) return null;
   const url = `https://www.instagram.com/${handle.replace(/^@/, "")}/`;
@@ -119,25 +146,25 @@ function WALink({ number, businessName }) {
   );
 }
 
-// ── Product Detail Modal ──────────────────────────────────────────────────────
-function ProductModal({ product, shop, onClose, onAddToCart, addBtnLabel = "+ Add to Cart", reviews = [] }) {
+// ── Product Detail Modal (Amazon-style) ───────────────────────────────────────
+function ProductModal({ product, shop, onClose, onAddToCart, addBtnLabel = "+ Add to Cart", reviews = [], allProducts = [] }) {
   const [selectedSize,  setSelectedSize]  = useState("");
   const [selectedColor, setSelectedColor] = useState("");
   const [imgIdx,        setImgIdx]        = useState(0);
 
-  // Build the image gallery: prefer image_urls array, fall back to single image_url
   const images = (product.image_urls && product.image_urls.length > 0)
     ? product.image_urls
     : (product.image_url ? [product.image_url] : []);
 
-  // Reviews for this specific product (match by name, case-insensitive)
   const productReviews = reviews.filter(
     r => r.product_name && r.product_name.toLowerCase() === product.name.toLowerCase()
   );
-  const reviewsToShow = productReviews.length > 0 ? productReviews : [];
-  const avgRating = reviewsToShow.length
-    ? (reviewsToShow.reduce((s, r) => s + r.rating, 0) / reviewsToShow.length).toFixed(1)
+  const avgRating = productReviews.length
+    ? (productReviews.reduce((s, r) => s + r.rating, 0) / productReviews.length).toFixed(1)
     : null;
+
+  // Similar products: same category, exclude current, max 4
+  const similar = allProducts.filter(p => p.id !== product.id && p.category === product.category && p.in_stock).slice(0, 4);
 
   function handleAdd() {
     onAddToCart({ ...product, size: selectedSize, color: selectedColor });
@@ -146,43 +173,51 @@ function ProductModal({ product, shop, onClose, onAddToCart, addBtnLabel = "+ Ad
 
   return (
     <div className="checkout-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="checkout-modal" style={{ maxWidth: 500 }}>
-        <div className="checkout-header">
-          <div className="checkout-title" style={{ fontSize: 16 }}>{product.name}</div>
+      <div className="checkout-modal" style={{ maxWidth: 640, maxHeight: "90vh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+
+        {/* Sticky header */}
+        <div className="checkout-header" style={{ flexShrink: 0 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3 }}>{product.name}</div>
+            {avgRating && (
+              <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>
+                {"⭐".repeat(Math.round(parseFloat(avgRating)))} {avgRating} · {productReviews.length} review{productReviews.length !== 1 ? "s" : ""}
+              </div>
+            )}
+          </div>
           <button className="checkout-close" onClick={onClose}>✕</button>
         </div>
-        <div className="checkout-body" style={{ padding: "0 0 20px" }}>
+
+        {/* Scrollable body */}
+        <div style={{ overflowY: "auto", flex: 1 }}>
 
           {/* Image gallery */}
           {images.length > 0 && (
-            <div style={{ position: "relative" }}>
+            <div style={{ position: "relative", background: "var(--bg-input)" }}>
               <img src={images[imgIdx]} alt={product.name}
-                style={{ width: "100%", maxHeight: 300, objectFit: "cover", display: "block" }} />
+                style={{ width: "100%", maxHeight: 340, objectFit: "contain", display: "block" }} />
               {images.length > 1 && (
                 <>
-                  {/* Prev / Next arrows */}
                   {imgIdx > 0 && (
                     <button onClick={() => setImgIdx(i => i - 1)}
-                      style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.45)", border: "none", color: "#fff", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+                      style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.5)", border: "none", color: "#fff", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
                   )}
                   {imgIdx < images.length - 1 && (
                     <button onClick={() => setImgIdx(i => i + 1)}
-                      style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.45)", border: "none", color: "#fff", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+                      style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.5)", border: "none", color: "#fff", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
                   )}
-                  {/* Dot indicators */}
-                  <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 6 }}>
+                  <div style={{ position: "absolute", bottom: 10, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 6 }}>
                     {images.map((_, i) => (
                       <button key={i} onClick={() => setImgIdx(i)}
                         style={{ width: 8, height: 8, borderRadius: "50%", border: "none", cursor: "pointer", padding: 0,
                           background: i === imgIdx ? "var(--purple)" : "rgba(255,255,255,0.6)" }} />
                     ))}
                   </div>
-                  {/* Thumbnail strip */}
-                  <div style={{ display: "flex", gap: 6, padding: "8px 12px 0", overflowX: "auto" }}>
+                  <div style={{ display: "flex", gap: 6, padding: "10px 12px 0", overflowX: "auto", background: "var(--bg-card)" }}>
                     {images.map((url, i) => (
                       <img key={i} src={url} alt="" onClick={() => setImgIdx(i)}
-                        style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 8, cursor: "pointer", flexShrink: 0,
-                          border: i === imgIdx ? "2px solid var(--purple)" : "2px solid transparent", opacity: i === imgIdx ? 1 : 0.6 }} />
+                        style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 8, cursor: "pointer", flexShrink: 0,
+                          border: i === imgIdx ? "2px solid var(--purple)" : "2px solid transparent", opacity: i === imgIdx ? 1 : 0.55 }} />
                     ))}
                   </div>
                 </>
@@ -190,78 +225,155 @@ function ProductModal({ product, shop, onClose, onAddToCart, addBtnLabel = "+ Ad
             </div>
           )}
 
-          <div style={{ padding: "16px 24px 0" }}>
-            <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 22, fontWeight: 700, color: "var(--purple)" }}>{formatPrice(product.price)}</span>
-              {avgRating && (
-                <span style={{ fontSize: 13, color: "var(--text-2)", display: "flex", alignItems: "center", gap: 4 }}>
-                  ⭐ <b style={{ color: "var(--text-1)" }}>{avgRating}</b>
-                  <span style={{ color: "var(--text-3)" }}>({reviewsToShow.length})</span>
-                </span>
-              )}
+          <div style={{ padding: "20px 24px 24px" }}>
+            {/* Price + stock */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <span style={{ fontSize: 28, fontWeight: 800, color: "var(--purple)" }}>{formatPrice(product.price)}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 20,
+                background: product.in_stock ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
+                color: product.in_stock ? "#22c55e" : "#ef4444" }}>
+                {product.in_stock ? "✓ In Stock" : "✕ Out of Stock"}
+              </span>
             </div>
-            {product.description && <p style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.6, marginBottom: 14 }}>{product.description}</p>}
-            {product.material && <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 14 }}>Material: {product.material}</p>}
 
+            {/* Description */}
+            {product.description && (
+              <p style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.7, marginBottom: 16 }}>{product.description}</p>
+            )}
+
+            {/* Specs row */}
+            {(product.material || product.category) && (
+              <div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
+                {product.category && (
+                  <div style={{ fontSize: 12 }}>
+                    <span style={{ color: "var(--text-3)" }}>Category · </span>
+                    <span style={{ color: "var(--text-2)", fontWeight: 600 }}>{product.category}</span>
+                  </div>
+                )}
+                {product.material && (
+                  <div style={{ fontSize: 12 }}>
+                    <span style={{ color: "var(--text-3)" }}>Material · </span>
+                    <span style={{ color: "var(--text-2)", fontWeight: 600 }}>{product.material}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Color swatches */}
             {product.colors?.length > 0 && (
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Color</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {product.colors.map(c => (
-                    <button key={c} onClick={() => setSelectedColor(c)}
-                      style={{
-                        padding: "6px 14px", borderRadius: 20, fontSize: 13, cursor: "pointer",
-                        border: selectedColor === c ? "2px solid var(--purple)" : "1px solid var(--border)",
-                        background: selectedColor === c ? "var(--purple-dim)" : "var(--bg)",
-                        color: selectedColor === c ? "var(--purple)" : "var(--text-2)",
-                        fontWeight: selectedColor === c ? 600 : 400,
-                      }}>{c}</button>
-                  ))}
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: "var(--text-1)" }}>
+                  Color{selectedColor ? <span style={{ fontWeight: 400, color: "var(--purple)", marginLeft: 6 }}>{selectedColor}</span> : ""}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                  {product.colors.map(c => {
+                    const swatch = getColorSwatch(c);
+                    const isSelected = selectedColor === c;
+                    return swatch ? (
+                      <button key={c} title={c} onClick={() => setSelectedColor(c)}
+                        style={{
+                          width: 32, height: 32, borderRadius: "50%", cursor: "pointer", padding: 0,
+                          background: swatch.startsWith("linear") ? swatch : swatch,
+                          border: isSelected ? "3px solid var(--purple)" : "2px solid var(--border)",
+                          boxShadow: isSelected ? "0 0 0 2px var(--purple-dim)" : "none",
+                          outline: "none",
+                        }} />
+                    ) : (
+                      <button key={c} onClick={() => setSelectedColor(c)}
+                        style={{
+                          padding: "6px 14px", borderRadius: 20, fontSize: 13, cursor: "pointer",
+                          border: isSelected ? "2px solid var(--purple)" : "1px solid var(--border)",
+                          background: isSelected ? "var(--purple-dim)" : "var(--bg)",
+                          color: isSelected ? "var(--purple)" : "var(--text-2)", fontWeight: isSelected ? 600 : 400,
+                        }}>{c}</button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
+            {/* Size chips */}
             {product.has_sizes && product.sizes?.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Size</div>
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: "var(--text-1)" }}>Size</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {product.sizes.map(s => (
                     <button key={s} onClick={() => setSelectedSize(s)}
                       style={{
-                        padding: "6px 14px", borderRadius: 8, fontSize: 13, cursor: "pointer",
+                        minWidth: 44, padding: "8px 14px", borderRadius: 8, fontSize: 13, cursor: "pointer", fontWeight: 600,
                         border: selectedSize === s ? "2px solid var(--purple)" : "1px solid var(--border)",
-                        background: selectedSize === s ? "var(--purple-dim)" : "var(--bg)",
+                        background: selectedSize === s ? "var(--purple-dim)" : "var(--bg-input)",
                         color: selectedSize === s ? "var(--purple)" : "var(--text-2)",
-                        fontWeight: selectedSize === s ? 600 : 400,
                       }}>{s}</button>
+                  ))}
+                </div>
+                {product.has_sizes && !selectedSize && (
+                  <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 6 }}>Please select a size to continue</p>
+                )}
+              </div>
+            )}
+
+            {/* Add to cart */}
+            {product.in_stock ? (
+              <button className="checkout-btn" onClick={handleAdd}
+                disabled={product.has_sizes && product.sizes?.length > 0 && !selectedSize}
+                style={{ fontSize: 16, padding: "14px 24px" }}>
+                {addBtnLabel}
+              </button>
+            ) : (
+              <button className="checkout-btn" disabled style={{ opacity: 0.5, fontSize: 16, padding: "14px 24px" }}>
+                Out of Stock
+              </button>
+            )}
+
+            {/* Customer reviews */}
+            {productReviews.length > 0 && (
+              <div style={{ marginTop: 28, borderTop: "1px solid var(--border)", paddingTop: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 32, fontWeight: 900, color: "var(--text-1)" }}>{avgRating}</span>
+                  <div>
+                    <div style={{ fontSize: 18 }}>{"⭐".repeat(Math.round(parseFloat(avgRating)))}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-3)" }}>{productReviews.length} review{productReviews.length !== 1 ? "s" : ""}</div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {productReviews.slice(0, 5).map(r => (
+                    <div key={r.id} style={{ background: "var(--bg-input)", borderRadius: 10, padding: "12px 14px" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{r.customer_name || "Customer"}</span>
+                        <span style={{ fontSize: 11, color: "var(--text-3)" }}>
+                          {new Date(r.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 15 }}>{"⭐".repeat(r.rating || 0)}</div>
+                    </div>
                   ))}
                 </div>
               </div>
             )}
 
-            <button className="checkout-btn" onClick={handleAdd}
-              disabled={product.has_sizes && product.sizes?.length > 0 && !selectedSize}>
-              {addBtnLabel}
-            </button>
-
-            {/* Customer reviews */}
-            {reviewsToShow.length > 0 && (
-              <div style={{ marginTop: 20, borderTop: "1px solid var(--border)", paddingTop: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: "var(--text-1)" }}>
-                  ⭐ Customer Reviews ({reviewsToShow.length})
+            {/* Similar products */}
+            {similar.length > 0 && (
+              <div style={{ marginTop: 28, borderTop: "1px solid var(--border)", paddingTop: 20 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14, color: "var(--text-1)" }}>
+                  Similar Products
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {reviewsToShow.slice(0, 5).map(r => (
-                    <div key={r.id} style={{ background: "var(--bg)", borderRadius: 10, padding: "10px 12px", border: "1px solid var(--border)" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
-                          {r.customer_name || "Customer"}
-                        </span>
-                        <span style={{ fontSize: 11, color: "var(--text-3)" }}>
-                          {new Date(r.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 16 }}>{"⭐".repeat(r.rating || 0)}</div>
+                <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+                  {similar.map(p => (
+                    <div key={p.id} onClick={() => { onClose(); setTimeout(() => onAddToCart && null, 0); }}
+                      style={{ flexShrink: 0, width: 130, cursor: "pointer" }}
+                      className="shop-similar-card">
+                      {p.image_url ? (
+                        <img src={p.image_url} alt={p.name}
+                          style={{ width: "100%", height: 100, objectFit: "cover", borderRadius: 8, display: "block" }} />
+                      ) : (
+                        <div style={{ width: "100%", height: 100, background: "var(--bg-input)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>
+                          🛍️
+                        </div>
+                      )}
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-1)", marginTop: 6, lineHeight: 1.3 }}
+                        title={p.name}>{p.name.length > 22 ? p.name.slice(0, 20) + "…" : p.name}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--purple)", marginTop: 2 }}>{formatPrice(p.price)}</div>
                     </div>
                   ))}
                 </div>
@@ -275,9 +387,9 @@ function ProductModal({ product, shop, onClose, onAddToCart, addBtnLabel = "+ Ad
 }
 
 // ── Return Request Modal ──────────────────────────────────────────────────────
-function ReturnModal({ shop, onClose }) {
+function ReturnModal({ shop, onClose, prefillOrderId = "" }) {
   const [step,        setStep]        = useState("form");  // form | done
-  const [orderId,     setOrderId]     = useState("");
+  const [orderId,     setOrderId]     = useState(prefillOrderId);
   const [email,       setEmail]       = useState("");
   const [name,        setName]        = useState("");
   const [reason,      setReason]      = useState("");
@@ -368,6 +480,105 @@ function ReturnModal({ shop, onClose }) {
   );
 }
 
+// ── Order History Modal ───────────────────────────────────────────────────────
+function OrderHistoryModal({ shop, onClose, onReturnRequest }) {
+  const [email,   setEmail]   = useState("");
+  const [orders,  setOrders]  = useState(null);  // null = not fetched yet
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState("");
+
+  async function lookup() {
+    if (!email.trim()) return setError("Please enter your email address.");
+    setLoading(true); setError("");
+    try {
+      const r = await fetch(`${API}/public/shop/${shop.slug}/my-orders?email=${encodeURIComponent(email.trim())}`);
+      const d = await r.json();
+      setOrders(d.orders || []);
+    } catch { setError("Could not fetch orders. Please try again."); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="checkout-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="checkout-modal" style={{ maxWidth: 500 }}>
+        <div className="checkout-header">
+          <div className="checkout-title">My Orders</div>
+          <button className="checkout-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="checkout-body">
+          {orders === null ? (
+            <>
+              <p style={{ fontSize: 14, color: "var(--text-2)", marginBottom: 16 }}>
+                Enter the email address you used when placing your order.
+              </p>
+              {error && <div className="checkout-error">{error}</div>}
+              <input className="checkout-input" type="email" placeholder="your@email.com"
+                value={email} onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && lookup()} />
+              <button className="checkout-btn" onClick={lookup} disabled={loading}>
+                {loading ? "Looking up…" : "View My Orders →"}
+              </button>
+            </>
+          ) : orders.length === 0 ? (
+            <>
+              <div style={{ textAlign: "center", padding: "24px 0" }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>📦</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 6 }}>No orders found</div>
+                <p style={{ fontSize: 13, color: "var(--text-3)" }}>We couldn't find any orders for {email}. Make sure you're using the same email you checked out with.</p>
+              </div>
+              <button className="checkout-btn-ghost" onClick={() => setOrders(null)}>Try another email</button>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 14 }}>
+                {orders.length} order{orders.length !== 1 ? "s" : ""} found for <b style={{ color: "var(--text-2)" }}>{email}</b>
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {orders.map(o => {
+                  const statusInfo = ORDER_STATUS_LABEL[o.status] || { label: o.status, color: "var(--text-3)" };
+                  const cart = Array.isArray(o.cart) ? o.cart : [];
+                  const total = o.bill?.total || cart.reduce((s, i) => s + i.total, 0);
+                  return (
+                    <div key={o.id} style={{ background: "var(--bg-input)", borderRadius: 12, padding: 14 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>#{o.id}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 20,
+                          background: statusInfo.color + "20", color: statusInfo.color }}>
+                          {statusInfo.label}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 4 }}>
+                        {cart.map(i => `${i.name}${i.size ? ` (${i.size})` : ""} ×${i.qty}`).join(" · ")}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--purple)" }}>₹{Number(total).toLocaleString("en-IN")}</span>
+                        <span style={{ fontSize: 11, color: "var(--text-3)" }}>
+                          {new Date(o.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        </span>
+                      </div>
+                      {["delivered", "confirmed", "shipped", "packed"].includes(o.status) && (
+                        <button onClick={() => { onClose(); onReturnRequest(o.id); }}
+                          style={{ marginTop: 10, width: "100%", padding: "8px", borderRadius: 8, fontSize: 12,
+                            fontWeight: 600, cursor: "pointer", border: "1px solid var(--border)",
+                            background: "transparent", color: "var(--text-2)" }}>
+                          ↩ Request Return / Exchange
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <button className="checkout-btn-ghost" onClick={() => setOrders(null)} style={{ marginTop: 8 }}>
+                Use different email
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Checkout Modal ────────────────────────────────────────────────────────────
 function CheckoutModal({ cart, shop, onClose, onSuccess }) {
   const [step,       setStep]       = useState("cart");   // cart | details | otp | payment | done
@@ -375,7 +586,8 @@ function CheckoutModal({ cart, shop, onClose, onSuccess }) {
   const [otp,        setOtp]        = useState("");
   const [otpToken,   setOtpToken]   = useState(null);
   const [otpSent,    setOtpSent]    = useState(false);
-  const [payMode,    setPayMode]    = useState("cod");
+  const paymentModes = shop.payment_modes || "both";
+  const [payMode,    setPayMode]    = useState(paymentModes === "online_only" ? "online" : "cod");
   const [loading,    setLoading]    = useState(false);
   const [error,      setError]      = useState("");
   const [result,     setResult]     = useState(null);
@@ -506,17 +718,38 @@ function CheckoutModal({ cart, shop, onClose, onSuccess }) {
           {/* ── Step: Payment ── */}
           {step === "payment" && (
             <>
-              <p className="checkout-otp-info">Choose how you'd like to pay for your order of <b>₹{total.toLocaleString("en-IN")}</b>.</p>
-              <div className="checkout-pay-options">
-                <label className={`checkout-pay-option ${payMode === "cod" ? "selected" : ""}`}>
-                  <input type="radio" value="cod" checked={payMode === "cod"} onChange={() => setPayMode("cod")} />
-                  <div><div className="checkout-pay-label">💵 Cash on Delivery</div><div className="checkout-pay-sub">{shop.cod_fee > 0 ? `+₹${shop.cod_fee} COD fee` : "No extra charge"}</div></div>
-                </label>
-                <label className={`checkout-pay-option ${payMode === "online" ? "selected" : ""}`}>
-                  <input type="radio" value="online" checked={payMode === "online"} onChange={() => setPayMode("online")} />
-                  <div><div className="checkout-pay-label">💳 Pay Online</div><div className="checkout-pay-sub">UPI, Card, Net Banking via Razorpay</div></div>
-                </label>
-              </div>
+              <p className="checkout-otp-info">
+                {paymentModes === "cod_only"    && "Your order will be paid on delivery."}
+                {paymentModes === "online_only" && "Pay securely online to confirm your order."}
+                {paymentModes === "both"        && `Choose how you'd like to pay for your order of `}
+                {paymentModes === "both" && <b>₹{total.toLocaleString("en-IN")}</b>}
+              </p>
+              {paymentModes === "both" && (
+                <div className="checkout-pay-options">
+                  <label className={`checkout-pay-option ${payMode === "cod" ? "selected" : ""}`}>
+                    <input type="radio" value="cod" checked={payMode === "cod"} onChange={() => setPayMode("cod")} />
+                    <div><div className="checkout-pay-label">💵 Cash on Delivery</div><div className="checkout-pay-sub">{shop.cod_fee > 0 ? `+₹${shop.cod_fee} COD fee` : "No extra charge"}</div></div>
+                  </label>
+                  <label className={`checkout-pay-option ${payMode === "online" ? "selected" : ""}`}>
+                    <input type="radio" value="online" checked={payMode === "online"} onChange={() => setPayMode("online")} />
+                    <div><div className="checkout-pay-label">💳 Pay Online</div><div className="checkout-pay-sub">UPI, Card, Net Banking via Razorpay</div></div>
+                  </label>
+                </div>
+              )}
+              {paymentModes === "cod_only" && (
+                <div className="checkout-pay-options">
+                  <div className="checkout-pay-option selected">
+                    <div><div className="checkout-pay-label">💵 Cash on Delivery</div><div className="checkout-pay-sub">{shop.cod_fee > 0 ? `+₹${shop.cod_fee} COD fee` : "No extra charge"}</div></div>
+                  </div>
+                </div>
+              )}
+              {paymentModes === "online_only" && (
+                <div className="checkout-pay-options">
+                  <div className="checkout-pay-option selected">
+                    <div><div className="checkout-pay-label">💳 Pay Online</div><div className="checkout-pay-sub">UPI, Card, Net Banking via Razorpay</div></div>
+                  </div>
+                </div>
+              )}
               <button className="checkout-btn" onClick={placeOrder} disabled={loading}>{loading ? "Placing order..." : "Place Order →"}</button>
             </>
           )}
@@ -557,6 +790,8 @@ export default function ShopPage() {
   const [checkout,        setCheckout]        = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [returnOpen,      setReturnOpen]      = useState(false);
+  const [returnPrefillId, setReturnPrefillId] = useState("");
+  const [ordersOpen,      setOrdersOpen]      = useState(false);
 
   const addToCart = useCallback((product) => {
     setCart(prev => {
@@ -673,7 +908,7 @@ export default function ShopPage() {
       <nav className="shop-nav">
         <Link to="/" className="shop-nav-logo">Sell<span>y</span></Link>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <Link to="/shops" className="btn btn-ghost btn-sm">Browse shops</Link>
+          <button className="btn btn-ghost btn-sm" onClick={() => setOrdersOpen(true)}>📦 My Orders</button>
           {cartCount > 0 && (
             <button className="shop-cart-btn" onClick={() => setCheckout(true)}>
               🛒 Cart <span className="shop-cart-badge">{cartCount}</span>
@@ -772,6 +1007,7 @@ export default function ShopPage() {
           onAddToCart={(item) => { addToCart(item); setSelectedProduct(null); }}
           addBtnLabel={addBtnLabel}
           reviews={reviews}
+          allProducts={products || []}
         />
       )}
 
@@ -792,7 +1028,17 @@ export default function ShopPage() {
       {returnOpen && (
         <ReturnModal
           shop={{ ...shop, business_id: shop.business_id }}
-          onClose={() => setReturnOpen(false)}
+          onClose={() => { setReturnOpen(false); setReturnPrefillId(""); }}
+          prefillOrderId={returnPrefillId}
+        />
+      )}
+
+      {/* Order History Modal */}
+      {ordersOpen && (
+        <OrderHistoryModal
+          shop={shop}
+          onClose={() => setOrdersOpen(false)}
+          onReturnRequest={(orderId) => { setReturnPrefillId(orderId); setReturnOpen(true); }}
         />
       )}
 
