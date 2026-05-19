@@ -718,11 +718,18 @@ function CheckoutModal({ cart, shop, onClose, onSuccess }) {
           {/* ── Step: Payment ── */}
           {step === "payment" && (
             <>
-              <p className="checkout-otp-info">
+              {/* Cost breakdown */}
+              <div className="checkout-totals" style={{ marginBottom: 16 }}>
+                <div className="checkout-total-row"><span>Subtotal</span><span>₹{subtotal.toLocaleString("en-IN")}</span></div>
+                {gstAmt > 0 && <div className="checkout-total-row"><span>GST ({gstRate}%)</span><span>₹{gstAmt.toLocaleString("en-IN")}</span></div>}
+                {delivery > 0 && <div className="checkout-total-row"><span>Delivery</span><span>₹{delivery.toLocaleString("en-IN")}</span></div>}
+                {codFee > 0 && payMode === "cod" && <div className="checkout-total-row"><span>COD Fee</span><span>₹{codFee.toLocaleString("en-IN")}</span></div>}
+                <div className="checkout-total-row grand"><span>Total</span><span>₹{total.toLocaleString("en-IN")}</span></div>
+              </div>
+              <p className="checkout-otp-info" style={{ marginTop: 0 }}>
                 {paymentModes === "cod_only"    && "Your order will be paid on delivery."}
                 {paymentModes === "online_only" && "Pay securely online to confirm your order."}
-                {paymentModes === "both"        && `Choose how you'd like to pay for your order of `}
-                {paymentModes === "both" && <b>₹{total.toLocaleString("en-IN")}</b>}
+                {paymentModes === "both"        && "Choose your payment method:"}
               </p>
               {paymentModes === "both" && (
                 <div className="checkout-pay-options">
