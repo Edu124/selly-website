@@ -607,7 +607,7 @@ function CheckoutModal({ cart, shop, onClose, onSuccess }) {
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email: customer.email,
-        options: { shouldCreateUser: true, emailRedirectTo: undefined },
+        options: { shouldCreateUser: true },
       });
       if (error) throw new Error(error.message);
       setOtpSent(true);
