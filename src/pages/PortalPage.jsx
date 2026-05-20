@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { QRCodeSVG } from "qrcode.react";
 
-const API = "https://instagram-bot-production-b993.up.railway.app";
+const API = "https://instagram-bot-production-04ae.up.railway.app";
 
 const SELLY_APP_URL = "https://github.com/Edu124/selly-app/releases/download/v1.0.0/application-c944dc71-57e8-470d-b76f-bbe7704e7f3d.apk";
 const APP_VERSION   = "v1.1.0";
