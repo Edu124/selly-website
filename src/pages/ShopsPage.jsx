@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 
-const API = "https://instagram-bot-production-ef01.up.railway.app";
+const API = "https://instagram-bot-production-b993.up.railway.app";
 
 const INDUSTRY_LABELS = {
   product    : "Fashion & Clothing",

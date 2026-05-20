@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
-const API = "https://instagram-bot-production-ef01.up.railway.app";
+const API = "https://instagram-bot-production-b993.up.railway.app";
 
 const INDUSTRY_LABELS = {
   product    : "Fashion & Clothing",
