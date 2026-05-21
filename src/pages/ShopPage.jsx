@@ -686,7 +686,12 @@ function CheckoutModal({ cart, onUpdateCart, shop, onClose, onSuccess }) {
                 <div className="checkout-total-row"><span>Subtotal</span><span>₹{subtotal.toLocaleString("en-IN")}</span></div>
                 {gstAmt > 0 && <div className="checkout-total-row"><span>GST ({gstRate}%)</span><span>₹{gstAmt.toLocaleString("en-IN")}</span></div>}
                 {delivery > 0 && <div className="checkout-total-row"><span>Delivery</span><span>₹{delivery.toLocaleString("en-IN")}</span></div>}
-                <div className="checkout-total-row grand"><span>Total</span><span>₹{total.toLocaleString("en-IN")}</span></div>
+                {shop.cod_fee > 0 && paymentModes !== "online_only" && (
+                  <div className="checkout-total-row" style={{ color: "var(--text-3)", fontSize: 12 }}>
+                    <span>COD Fee (if Cash on Delivery)</span><span>+₹{(shop.cod_fee || 0).toLocaleString("en-IN")}</span>
+                  </div>
+                )}
+                <div className="checkout-total-row grand"><span>Total</span><span>₹{(subtotal + gstAmt + delivery).toLocaleString("en-IN")}</span></div>
               </div>
               <button className="checkout-btn" onClick={() => setStep("details")}>Proceed →</button>
             </>
