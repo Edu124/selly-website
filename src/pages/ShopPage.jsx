@@ -580,7 +580,7 @@ function OrderHistoryModal({ shop, onClose, onReturnRequest }) {
 }
 
 // ── Checkout Modal ────────────────────────────────────────────────────────────
-function CheckoutModal({ cart, shop, onClose, onSuccess }) {
+function CheckoutModal({ cart, onUpdateCart, shop, onClose, onSuccess }) {
   const [step,       setStep]       = useState("cart");   // cart | details | otp | payment | done
   const [customer,   setCustomer]   = useState({ name: "", email: "", phone: "", address: "" });
   const [otp,        setOtp]        = useState("");
@@ -670,7 +670,15 @@ function CheckoutModal({ cart, shop, onClose, onSuccess }) {
               {cart.map((item, i) => (
                 <div key={i} className="checkout-item">
                   <div className="checkout-item-name">{item.name}{item.size ? ` (${item.size})` : ""}</div>
-                  <div className="checkout-item-meta">× {item.qty} &nbsp;·&nbsp; ₹{(item.price * item.qty).toLocaleString("en-IN")}</div>
+                  <div className="checkout-item-row">
+                    <div className="checkout-qty-controls">
+                      <button className="checkout-qty-btn" onClick={() => onUpdateCart(item.id, item.qty - 1)}>−</button>
+                      <span className="checkout-qty-val">{item.qty}</span>
+                      <button className="checkout-qty-btn" onClick={() => onUpdateCart(item.id, item.qty + 1)}>+</button>
+                    </div>
+                    <div className="checkout-item-meta">₹{(item.price * item.qty).toLocaleString("en-IN")}</div>
+                    <button className="checkout-remove-btn" onClick={() => onUpdateCart(item.id, 0)}>✕</button>
+                  </div>
                 </div>
               ))}
               <div className="checkout-divider" />
@@ -799,6 +807,7 @@ export default function ShopPage() {
   const [returnOpen,      setReturnOpen]      = useState(false);
   const [returnPrefillId, setReturnPrefillId] = useState("");
   const [ordersOpen,      setOrdersOpen]      = useState(false);
+  const [cartToast,       setCartToast]       = useState("");
 
   const addToCart = useCallback((product) => {
     setCart(prev => {
@@ -806,6 +815,15 @@ export default function ShopPage() {
       if (idx >= 0) return prev.map((i, n) => n === idx ? { ...i, qty: i.qty + 1 } : i);
       return [...prev, { ...product, qty: 1 }];
     });
+    setCartToast(product.name);
+    setTimeout(() => setCartToast(""), 2000);
+  }, []);
+
+  const updateCartQty = useCallback((productId, newQty) => {
+    setCart(prev => newQty <= 0
+      ? prev.filter(i => i.id !== productId)
+      : prev.map(i => i.id === productId ? { ...i, qty: newQty } : i)
+    );
   }, []);
 
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
@@ -911,6 +929,11 @@ export default function ShopPage() {
 
   return (
     <div className="shop-page">
+      {/* Cart toast */}
+      {cartToast && (
+        <div className="cart-toast">✅ {cartToast} added to cart</div>
+      )}
+
       {/* Nav */}
       <nav className="shop-nav">
         <Link to="/" className="shop-nav-logo">Sell<span>y</span></Link>
@@ -1053,9 +1076,10 @@ export default function ShopPage() {
       {checkout && cart.length > 0 && (
         <CheckoutModal
           cart={cart}
+          onUpdateCart={updateCartQty}
           shop={{ ...shop, business_id: shop.business_id }}
           onClose={() => setCheckout(false)}
-          onSuccess={() => { setCart([]); }}
+          onSuccess={() => { setCart([]); setCheckout(false); }}
         />
       )}
 
